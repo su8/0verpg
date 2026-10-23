@@ -123,6 +123,8 @@ struct Character {
 
 // Configurable input game keys that get established when the game starts
 int keys[8];
+// readKey() codes for the arrow keys, the same on every platform
+enum ArrowKey { KEY_UP = 1001, KEY_DOWN, KEY_RIGHT, KEY_LEFT };
 
 // These 3 variables are used to retrieve the configuration file and setup the used language from "argv[1]" - if there is any input to request the game language
 // The config in the current directory wins, so the game runs straight from the repository; otherwise use the one in HOME
@@ -170,6 +172,7 @@ void gainXP(Hero &her, int amount);
 // On startup setup the movement and inventories keys
 int readKey(void);
 void setupKeys(void);
+std::string keyName(int key);
 std::string trim(std::string str);
 // Read a menu number
 int readNumber(void);
@@ -290,14 +293,14 @@ int play(int argc, char *argv[]) {
     {.name = trim(CONF["enemy2"]), .attack = 12, .health = 40, .xpReward = 30},
     {.name = trim(CONF["enemy3"]), .attack = 15, .health = 50, .xpReward = 40}
   };
-  unsigned char wKey = static_cast<unsigned char>(keys[1]);
-  unsigned char dKey = static_cast<unsigned char>(keys[0]);
-  unsigned char sKey = static_cast<unsigned char>(keys[3]);
-  unsigned char aKey = static_cast<unsigned char>(keys[2]);
-  unsigned char potionKey = static_cast<unsigned char>(keys[6]);
-  unsigned char armourKey = static_cast<unsigned char>(keys[4]);
-  unsigned char weaponKey = static_cast<unsigned char>(keys[5]);
-  unsigned char spellKey = static_cast<unsigned char>(keys[7]);
+  std::string wKey = keyName(keys[1]);
+  std::string dKey = keyName(keys[0]);
+  std::string sKey = keyName(keys[3]);
+  std::string aKey = keyName(keys[2]);
+  std::string potionKey = keyName(keys[6]);
+  std::string armourKey = keyName(keys[4]);
+  std::string weaponKey = keyName(keys[5]);
+  std::string spellKey = keyName(keys[7]);
   std::cout << "\n" << trim(CONF["chooseStartingArmour"]) << "\n";
   for (size_t i = 0; i < armours.size(); ++i) {
     std::cout << YELLOW << i+1 << ". " << RESETCOLOUR << MAGENTA << armours[i].name << CYAN << " (" << trim(CONF["defense"]) << " +" << RESETCOLOUR << YELLOW << armours[i].defense << RESETCOLOUR << CYAN << ")" << RESETCOLOUR << "\n";
@@ -336,17 +339,20 @@ int play(int argc, char *argv[]) {
         <<  armourKey << " " << trim(CONF["toChangeArmour"]) << ", " <<  weaponKey << " " << trim(CONF["toChangeWeapon"])
         << ", " <<  spellKey << " " << trim(CONF["toChangeSpell"]) << ", Q " << trim(CONF["toQuit"]) << ": " << RESETCOLOUR << std::endl;
       //std::cin >> move;
-      char move = std::tolower(static_cast<unsigned char>(readKey()));
+      int move = readKey();
+      if (move < 0) { return EXIT_SUCCESS; } // stdin closed
+      if (move < 256) { move = std::tolower(move); }
       if (move == 'q') { std::cout << MAGENTA << "🏁 " << trim(CONF["gameEnded"]) << RESETCOLOUR << "\n"; return EXIT_SUCCESS; }
-      if (move == potionKey) { usePotion(hero); continue; }
-      if (move == armourKey) { equipArmour(hero); continue; }
-      if (move == weaponKey) { equipWeapon(hero, hero.inventoryWeapons, 1, 0); continue; }
-      if (move == spellKey) { equipSpell(hero); continue; }
+      if (move == keys[6]) { usePotion(hero); continue; }
+      if (move == keys[4]) { equipArmour(hero); continue; }
+      if (move == keys[5]) { equipWeapon(hero, hero.inventoryWeapons, 1, 0); continue; }
+      if (move == keys[7]) { equipSpell(hero); continue; }
       int newX = hero.x, newY = hero.y;
-      if (move == wKey) newX--;
-      else if (move == sKey) newX++;
-      else if (move == aKey) newY--;
-      else if (move == dKey) newY++;
+      if (move == keys[1]) newX--;
+      else if (move == keys[3]) newX++;
+      else if (move == keys[2]) newY--;
+      else if (move == keys[0]) newY++;
+      else continue; // unbound key: don't explore the current room again
       // Check boundaries
       if (newX < 0 || newX >= mapSize || newY < 0 || newY >= mapSize) { std::cout << RED << "❌ " << trim(CONF["cantMoveOutsideDungeon"]) << RESETCOLOUR << "\n"; continue; }
       hero.x = newX;
@@ -735,24 +741,51 @@ void gainXP(Hero &hero, int amount) {
 #ifdef _WIN32
 int readKey(void) {
   int c = _getch();
-  if (c == 0 || c == 224) // in some cases on windows(?), pressing arrow keys returns two of these values, where the first is 0 or 224.
-    c = _getch() + (c<<8);
+  if (c == 0 || c == 224) { // in some cases on windows(?), pressing arrow keys returns two of these values, where the first is 0 or 224.
+    c = _getch();
+    switch (c) {
+      case 72: return KEY_UP;
+      case 80: return KEY_DOWN;
+      case 77: return KEY_RIGHT;
+      case 75: return KEY_LEFT;
+      default: return 27; // other special keys are ignored like Esc
+    }
+  }
   return c;
 }
 #else
 int readKey(void) {
-  char buf = 0;
-  struct termios old = {0};
+  struct termios old = {}, raw;
+  unsigned char c = 0;
   fflush(stdout);
-  if(tcgetattr(0, &old) < 0) { perror("tcsetattr()"); }
-  old.c_lflag &= (~ICANON); // local modes = Non Canonical mode
-  old.c_cc[VMIN] = 1;  // control chars (MIN value) = 1
-  old.c_cc[VTIME] = 0; // control chars (TIME value) = 0 (No time)
-  if(tcsetattr(0, TCSANOW, &old) < 0) { perror("tcsetattr ICANON"); }
-  if(read(0, &buf, 1) < 0) { perror("read()"); }
-  old.c_lflag |= ICANON; // local modes = Canonical mode
-  if(tcsetattr(0, TCSADRAIN, &old) < 0) { perror("tcsetattr ~ICANON"); }
-  return buf;
+  // Not a terminal (piped input): take the next byte from std::cin, which readNumber() may have already buffered
+  if (tcgetattr(STDIN_FILENO, &old) < 0) { int ch = std::cin.get(); return ch == EOF ? -1 : ch; }
+  raw = old;
+  raw.c_lflag &= static_cast<tcflag_t>(~(ICANON | ECHO)); // Non canonical mode, no echo
+  raw.c_cc[VMIN] = 1;
+  raw.c_cc[VTIME] = 0;
+  if (tcsetattr(STDIN_FILENO, TCSANOW, &raw) < 0) { perror("tcsetattr ICANON"); }
+  int result = read(STDIN_FILENO, &c, 1) == 1 ? c : -1;
+  // Read the whole escape sequence while still raw: going back to canonical mode first makes macOS echo "[C",
+  // and leftover bytes of keys like Home or F1 would be read as more key presses
+  if (result == 27) {
+    raw.c_cc[VMIN] = 0;
+    raw.c_cc[VTIME] = 1; // wait up to 0.1 s per byte
+    tcsetattr(STDIN_FILENO, TCSANOW, &raw);
+    unsigned char intro = 0;
+    if (read(STDIN_FILENO, &intro, 1) == 1 && (intro == '[' || intro == 'O')) {
+      // "ESC O x" is one byte long, "ESC [ ..." ends at a byte from '@' to '~'
+      for (int len = 0; len < 16 && read(STDIN_FILENO, &c, 1) == 1; len++) {
+        if (intro == 'O' || (c >= '@' && c <= '~')) {
+          if (len == 0 && c >= 'A' && c <= 'D') { result = KEY_UP + (c - 'A'); } // up, down, right, left
+          break;
+        }
+      }
+    }
+    // Anything else (Esc alone, Alt+key, Home, F1...) stays 27 and is ignored
+  }
+  if (tcsetattr(STDIN_FILENO, TCSADRAIN, &old) < 0) { perror("tcsetattr ~ICANON"); }
+  return result;
 }
 #endif /* _WIN32 */
 
@@ -763,9 +796,30 @@ void setupKeys(void) {
   for (auto text : { "right", "up", "left", "down", "armourInventory",
       "weaponInventory", "consumeApotion", "spellInventory" }) {
     std::cout << trim(CONF[text]);
-    keys[x++] = readKey();
+    int key = readKey();
+    if (key < 0) { std::exit(EXIT_SUCCESS); } // stdin closed
+    keys[x++] = (key < 256) ? std::tolower(key) : key;
   }
   std::cout << BLUE << "\n" << trim(CONF["keysEstablished"]) << "\n" << RESETCOLOUR << std::endl;
+}
+
+// Printable name of a key for the menus
+std::string keyName(int key) {
+  switch (key) {
+    case KEY_UP:    return "↑";
+    case KEY_DOWN:  return "↓";
+    case KEY_RIGHT: return "→";
+    case KEY_LEFT:  return "←";
+    case 27:        return "Esc";
+    case ' ':       return "Space";
+    case '\t':      return "Tab";
+    case '\n':
+    case '\r':      return "Enter";
+    case 127:
+    case 8:         return "Backspace";
+  }
+  if (key > 32 && key < 127) { return std::string(1, static_cast<char>(key)); }
+  return "?";
 }
 
 // Trim excess quotes
