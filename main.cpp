@@ -371,8 +371,7 @@ int play(int argc, char *argv[]) {
         std::cout << GREEN << "\n✅ " << trim(CONF["floor"]) << " " << floor << " " << trim(CONF["cleared"]) << RESETCOLOUR << "\n";
         floorCleared = true;
         // Heal hero slightly after round
-        hero.health += 15;
-        if (hero.health > hero.maxHP) hero.health = hero.maxHP;
+        hero.health = std::min(hero.maxHP, hero.health + 15);
         std::cout << CYAN << hero.name << RESETCOLOUR << " " << trim(CONF["restsAndRecoversTo"]) << " " << GREEN << hero.health << RESETCOLOUR << " " << trim(CONF["hp"]) << "." << "\n";
       }
     }
@@ -474,7 +473,7 @@ bool battle(Hero &hero, Enemy enemy) {
       hero.gold += 30;
       std::cout << CYAN << hero.name << RESETCOLOUR << " " << trim(CONF["earns"]) << " " << YELLOW << "30" << RESETCOLOUR << " " << trim(CONF["goldTotalGold"]) << ": " << YELLOW << hero.gold << RESETCOLOUR << "\n";
       gainXP(hero, enemy.xpReward);
-      if (hero.mana + 10 > hero.maxMana) { hero.mana = hero.maxMana; } else { hero.mana += 10; }
+      hero.mana = std::min(hero.maxMana, hero.mana + 10);
       if (hero.weaponAttackDecreased == 1) { hero.equippedWeapon.attack += 3; hero.weaponAttackDecreased = 0; }
       std::cout << BLUE << hero.name << RESETCOLOUR << " " << MAGENTA << trim(CONF["restoresMana"]) << RESETCOLOUR << "\n";
       return true;
