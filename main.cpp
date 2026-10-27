@@ -70,6 +70,7 @@ struct Enemy {
   int attack;
   int health;
   int xpReward;
+  int goldReward;
 };
 
 // Spell structure
@@ -289,9 +290,9 @@ int play(int argc, char *argv[]) {
   };
   // per level enemies
   std::vector<Enemy> enemies = {
-    {.name = trim(CONF["enemy1"]), .attack = 8, .health = 30, .xpReward = 20},
-    {.name = trim(CONF["enemy2"]), .attack = 12, .health = 40, .xpReward = 30},
-    {.name = trim(CONF["enemy3"]), .attack = 15, .health = 50, .xpReward = 40}
+    {.name = trim(CONF["enemy1"]), .attack = 8, .health = 30, .xpReward = 20, .goldReward = 20},
+    {.name = trim(CONF["enemy2"]), .attack = 12, .health = 40, .xpReward = 30, .goldReward = 30},
+    {.name = trim(CONF["enemy3"]), .attack = 15, .health = 50, .xpReward = 40, .goldReward = 40}
   };
   std::string wKey = keyName(keys[1]);
   std::string dKey = keyName(keys[0]);
@@ -470,8 +471,8 @@ bool battle(Hero &hero, Enemy enemy) {
       << ": " << RED << std::max(0, enemy.health) << RESETCOLOUR << "\n";
     if (enemy.health <= 0) {
       std::cout << MAGENTA << enemy.name << RESETCOLOUR << GREEN << " " << trim(CONF["isDefeated"]) << "!" << RESETCOLOUR << "\n";
-      hero.gold += 30;
-      std::cout << CYAN << hero.name << RESETCOLOUR << " " << trim(CONF["earns"]) << " " << YELLOW << "30" << RESETCOLOUR << " " << trim(CONF["goldTotalGold"]) << ": " << YELLOW << hero.gold << RESETCOLOUR << "\n";
+      hero.gold += enemy.goldReward;
+      std::cout << CYAN << hero.name << RESETCOLOUR << " " << trim(CONF["earns"]) << " " << YELLOW << enemy.goldReward << RESETCOLOUR << " " << trim(CONF["goldTotalGold"]) << ": " << YELLOW << hero.gold << RESETCOLOUR << "\n";
       gainXP(hero, enemy.xpReward);
       hero.mana = std::min(hero.maxMana, hero.mana + 10);
       if (hero.weaponAttackDecreased == 1) { hero.equippedWeapon.attack += 3; hero.weaponAttackDecreased = 0; }
@@ -574,15 +575,15 @@ bool exploreRoom(Hero &hero, std::vector<Enemy> &enemies, std::vector<Armour> &a
     cell = '.';
     return true;
   } else if (cell == 'B') {
-    Enemy boss = {.name = trim(CONF["dungeonBoss"]), .attack = 25, .health = 80, .xpReward = 50};
+    Enemy boss = {.name = trim(CONF["dungeonBoss"]), .attack = 25, .health = 80, .xpReward = 50, .goldReward = 50};
     cell = '.';
     return battle(hero, boss);
   } else if (cell == 'G') {
-    Enemy boss = {.name = trim(CONF["arenaBoss"]), .attack = 26, .health = 85, .xpReward = 60};
+    Enemy boss = {.name = trim(CONF["arenaBoss"]), .attack = 26, .health = 85, .xpReward = 60, .goldReward = 60};
     cell = '.';
     return battle(hero, boss);
   } else if (cell == 'Z') {
-    Enemy boss = {.name = trim(CONF["tarkanBoss"]), .attack = 27, .health = 90, .xpReward = 70};
+    Enemy boss = {.name = trim(CONF["tarkanBoss"]), .attack = 27, .health = 90, .xpReward = 70, .goldReward = 70};
     cell = '.';
     return battle(hero, boss);
   } else if (cell == 'T') {
