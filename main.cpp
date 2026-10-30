@@ -515,11 +515,11 @@ bool battle(Hero &hero, Enemy enemy) {
   while (hero.health > 0 && enemy.health > 0) {
     // Hero attacks
     int heroAttack = hero.baseAttack + hero.equippedWeapon.attack + hero.equippedSpell.attack + hero.activeSkill.damage;
-    if(std::rand() % 100 <= hero.critChance) { heroAttack *= 2; std::cout << YELLOW << trim(CONF["criticalHit"]) << "!" << RESETCOLOUR << "\n"; }
-    if (std::rand() % 100 < 35) { enemy.status = BURN; enemy.statusTurns = 3; std::cout << trim(CONF["enemyBurning"]) << "!\n"; }
-    else if (std::rand() % 100 < 30) { enemy.status = BLEED; enemy.statusTurns = 4; std::cout << trim(CONF["enemyBleeding"]) << "!\n"; }
-    else if(std::rand() % 100 < 25) { enemy.status = POISON; enemy.statusTurns = 5; std::cout << trim(CONF["enemyPoisoned2"]) << "!\n"; }
-    else if(std::rand() % 100 < 20) { enemy.status = FREEZE; enemy.statusTurns = 1; std::cout << trim(CONF["enemyFrozen2"]) << "!\n"; }
+    if (std::rand() % 100 <= hero.critChance) { heroAttack *= 2; std::cout << YELLOW << trim(CONF["criticalHit"]) << "!" << RESETCOLOUR << "\n"; }
+    if (std::rand() % 100 < 20) { enemy.status = FREEZE; enemy.statusTurns = 1; std::cout << trim(CONF["enemyFrozen2"]) << "!\n"; }
+    else if (std::rand() % 100 < 25) { enemy.status = POISON; enemy.statusTurns = 3; std::cout << trim(CONF["enemyPoisoned2"]) << "!\n"; }
+    else if (std::rand() % 100 < 30) { enemy.status = BLEED; enemy.statusTurns = 2; std::cout << trim(CONF["enemyBleeding"]) << "!\n"; }
+    else if (std::rand() % 100 < 35) { enemy.status = BURN; enemy.statusTurns = 1; std::cout << trim(CONF["enemyBurning"]) << "!\n"; }
     processStatus(enemy);
     if (hero.mana >= hero.activeSkill.manaCost) {
       hero.mana -= hero.activeSkill.manaCost;
@@ -552,7 +552,7 @@ bool battle(Hero &hero, Enemy enemy) {
     int totalDefense = hero.baseDefense + hero.equippedArmour.defense;
     int damage = enemy.attack - totalDefense;
     if (damage < 0) damage = 0;
-    if(std::rand() % 100 < 15) { std::cout << MAGENTA << hero.name << RESETCOLOUR << GREEN << " " << trim(CONF["dodged"]) << "!" << RESETCOLOUR << "\n"; damage = 0; }
+    if (std::rand() % 100 < 15) { std::cout << MAGENTA << hero.name << RESETCOLOUR << GREEN << " " << trim(CONF["dodged"]) << "!" << RESETCOLOUR << "\n"; damage = 0; }
     if (enemy.status == FREEZE) { std::cout << enemy.name << GREEN << " " << trim(CONF["cantMove"]) << " !" << RESETCOLOUR << "\n"; continue; }
     hero.health -= damage;
     bool companionWasAlive = hero.companion.health > 0;
