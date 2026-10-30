@@ -376,7 +376,7 @@ int play(int argc, char *argv[]) {
         << " | " << GREEN << "🧪 " << trim(CONF["potions"]) << ": " << hero.inventoryPotions.size() << RESETCOLOUR << " | "
         << BLUE << "♻️ " << trim(CONF["mana"]) << ": " << hero.mana << RESETCOLOUR <<  " | 💀" << CYAN << " " << trim(CONF["attack"]) << ": " << hero.baseAttack + hero.equippedWeapon.attack + hero.equippedSpell.attack << " " << trim(CONF["defense"]) << ": " << hero.baseDefense + hero.equippedArmour.defense << RESETCOLOUR
         << " | " << "🪄 " << MAGENTA << trim(CONF["spell"]) << ": " << hero.equippedSpell.name << RESETCOLOUR
-        << " 🔥 " << BLUE << trim(CONF["skill"]) << " " << hero.activeSkill.name << RESETCOLOUR
+        << " 🔥 " << BLUE << trim(CONF["skill"]) << ": " << hero.activeSkill.name << RESETCOLOUR
         << " 👹 " << CYAN << hero.name << RESETCOLOUR << YELLOW << " " << trim(CONF["level"]) << ": " << RESETCOLOUR << MAGENTA << hero.level << RESETCOLOUR << ", " 
         << CYAN << hero.xp << "/" << hero.level * 50 << " " << trim(CONF["xp"]) << RESETCOLOUR << " | 🐶 " << RED << trim(CONF["companion"])
         << " " << std::max(0, hero.companion.health) << trim(CONF["hp"]) << RESETCOLOUR << "\n";
