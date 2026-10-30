@@ -157,7 +157,7 @@ void equipWeapon(Hero &hero, std::vector<Weapon> &weapons, int index, int usedFr
 // Equip spell from inventory
 void equipSpell(Hero &hero);
 // Battle simulation
-bool battle(Hero &hero, Enemy enemy, std::vector<ClassSkill> &classSkills);
+bool battle(Hero &hero, Enemy enemy);
 // Loot room
 void lootRoom(Hero &hero, std::vector<Armour> &armours, std::vector<Weapon> &weapons, std::vector<Potion> &potionsList,  std::vector<Spell> &spells);
 // Use potion
@@ -167,7 +167,7 @@ bool trapRoom(Hero &hero);
 // Treasure chest room
 void chestRoom(Hero &hero, std::vector<Armour> &armours);
 // Explore room
-bool exploreRoom(Hero &hero, std::vector<Enemy> &enemies, std::vector<Armour> &armours, std::vector<Weapon> &weapons,char &cell, std::vector<Potion> &potionsList, std::vector<Spell> &spells, std::vector<ClassSkill> &classSkills);
+bool exploreRoom(Hero &hero, std::vector<Enemy> &enemies, std::vector<Armour> &armours, std::vector<Weapon> &weapons,char &cell, std::vector<Potion> &potionsList, std::vector<Spell> &spells);
 // Shop system
 void shop(Hero &hero, std::vector<Armour> &armours, std::vector<Potion> &potionsList);
 // Weapon shop system
@@ -179,7 +179,7 @@ std::vector<std::vector<char>> generateMap(int size);
 // Display map with fog of war
 void displayMap(const std::vector<std::vector<char>> &map, const std::vector<std::vector<bool>> &visited, const Hero &hero);
 // Gain XP and check for level up
-void gainXP(Hero &her, int amount, std::vector<ClassSkill> &classSkills);
+void gainXP(Hero &her, int amounts);
 // On startup setup the movement and inventories keys
 int readKey(void);
 void setupKeys(void);
@@ -304,39 +304,36 @@ int play(int argc, char *argv[]) {
     {.name = trim(CONF["enemy2"]), .attack = 12, .health = 40, .xpReward = 30, .goldReward = 30},
     {.name = trim(CONF["enemy3"]), .attack = 15, .health = 50, .xpReward = 40, .goldReward = 40}
   };
-
-  std::vector<ClassSkill> classSkills;
-  classSkills.reserve(3);
+  hero.skills.reserve(3);
   if (classChoice == 0) {
-    classSkills = { // Warrior
+    hero.skills = { // Warrior
       {.name = trim(CONF["cleave"]), .damage = 2, .manaCost = 0, .unlockLevel = 1},
       {.name = trim(CONF["shieldBash"]), .damage = 4, .manaCost = 10, .unlockLevel = 2},
       {.name = trim(CONF["whirlwind"]), .damage = 6, .manaCost = 20, .unlockLevel = 3}
     };
   }
   else if (classChoice == 1) {
-    classSkills = { // Mage
+    hero.skills = { // Mage
       {.name = trim(CONF["fireball"]), .damage = 2, .manaCost = 5, .unlockLevel = 1},
       {.name = trim(CONF["iceSpike"]), .damage = 4, .manaCost = 10, .unlockLevel = 2},
       {.name = trim(CONF["lightningBolt"]), .damage = 7, .manaCost = 20, .unlockLevel = 3}
     };
   }
   else if (classChoice == 2) {
-    classSkills = { // Rogue
+    hero.skills = { // Rogue
       {.name = trim(CONF["backstab"]), .damage = 2, .manaCost = 5, .unlockLevel = 1},
       {.name = trim(CONF["poisonStrike"]), .damage = 4, .manaCost = 10, .unlockLevel = 2},
       {.name = trim(CONF["shadowDance"]), .damage = 5, .manaCost = 20, .unlockLevel = 3}
     };
   }
   else {
-      classSkills = { // Paladin
+      hero.skills = { // Paladin
       {.name = trim(CONF["smite"]), .damage = 2, .manaCost = 5, .unlockLevel = 1},
       {.name = trim(CONF["holyStrike"]), .damage = 4, .manaCost = 10, .unlockLevel = 2},
       {.name = trim(CONF["divineWrath"]), .damage = 8, .manaCost = 20, .unlockLevel = 3}
     };
   }
-  hero.skills = classSkills;
-  hero.activeSkill = classSkills[0];
+  hero.activeSkill = hero.skills[0];
   std::string wKey = keyName(keys[1]);
   std::string dKey = keyName(keys[0]);
   std::string sKey = keyName(keys[3]);
@@ -383,7 +380,6 @@ int play(int argc, char *argv[]) {
       std::cout << YELLOW << trim(CONF["move"]) <<  " (" << wKey << "/" <<  dKey << "/" <<  aKey << "/" <<  sKey << "), " <<  potionKey << " " << trim(CONF["usePotion"]) << ", "
         <<  armourKey << " " << trim(CONF["toChangeArmour"]) << ", " <<  weaponKey << " " << trim(CONF["toChangeWeapon"])
         << ", " <<  spellKey << " " << trim(CONF["toChangeSpell"]) << ", Q " << trim(CONF["toQuit"]) << ": " << RESETCOLOUR << std::endl;
-      //std::cin >> move;
       int move = readKey();
       if (move < 0) { return EXIT_SUCCESS; } // stdin closed
       if (move < 256) { move = std::tolower(move); }
@@ -404,7 +400,7 @@ int play(int argc, char *argv[]) {
       hero.y = newY;
       visited[hero.x][hero.y] = true;
       // Explore the room
-      if (!exploreRoom(hero, enemies, armours, weapons, dungeon[hero.x][hero.y], potionsList, spells, classSkills)) { std::cout << RED << "\n💀 " << trim(CONF["gameOver"]) << RESETCOLOUR << "\n"; return EXIT_SUCCESS; }
+      if (!exploreRoom(hero, enemies, armours, weapons, dungeon[hero.x][hero.y], potionsList, spells)) { std::cout << RED << "\n💀 " << trim(CONF["gameOver"]) << RESETCOLOUR << "\n"; return EXIT_SUCCESS; }
       // Check if boss defeated
       bool bossAlive = false;
       for (int i = 0; i < mapSize; ++i) {
@@ -494,7 +490,7 @@ void equipSpell(Hero &hero) {
 }
 
 // Battle simulation
-bool battle(Hero &hero, Enemy enemy, std::vector<ClassSkill> &classSkills) {
+bool battle(Hero &hero, Enemy enemy) {
   std::cout << "\n⚔ " << trim(CONF["battle"]) << " " << CYAN << hero.name << RESETCOLOUR << " vs " << RED << enemy.name << RESETCOLOUR << "\n";
   while (hero.health > 0 && enemy.health > 0) {
     // Hero attacks
@@ -521,7 +517,7 @@ bool battle(Hero &hero, Enemy enemy, std::vector<ClassSkill> &classSkills) {
       std::cout << MAGENTA << enemy.name << RESETCOLOUR << GREEN << " " << trim(CONF["isDefeated"]) << "!" << RESETCOLOUR << "\n";
       hero.gold += enemy.goldReward;
       std::cout << CYAN << hero.name << RESETCOLOUR << " " << trim(CONF["earns"]) << " " << YELLOW << enemy.goldReward << RESETCOLOUR << " " << trim(CONF["goldTotalGold"]) << ": " << YELLOW << hero.gold << RESETCOLOUR << "\n";
-      gainXP(hero, enemy.xpReward, classSkills);
+      gainXP(hero, enemy.xpReward);
       hero.mana = std::min(hero.maxMana, hero.mana + 10);
       if (hero.weaponAttackDecreased == 1) { hero.equippedWeapon.attack += 3; hero.weaponAttackDecreased = 0; }
       std::cout << BLUE << hero.name << RESETCOLOUR << " " << MAGENTA << trim(CONF["restoresMana"]) << RESETCOLOUR << "\n";
@@ -613,11 +609,11 @@ void chestRoom(Hero &hero, std::vector<Armour> &armours) {
 }
 
 // Explore room
-bool exploreRoom(Hero &hero, std::vector<Enemy> &enemies, std::vector<Armour> &armours, std::vector<Weapon> &weapon, char &cell, std::vector<Potion> &potionsList, std::vector<Spell> &spells, std::vector<ClassSkill> &classSkills) {
+bool exploreRoom(Hero &hero, std::vector<Enemy> &enemies, std::vector<Armour> &armours, std::vector<Weapon> &weapon, char &cell, std::vector<Potion> &potionsList, std::vector<Spell> &spells) {
   if (cell == 'E') {
     Enemy enemy = enemies[std::rand() % enemies.size()];
     cell = '.';
-    return battle(hero, enemy, classSkills);
+    return battle(hero, enemy);
   } else if (cell == 'L') {
     lootRoom(hero, armours, weapon, potionsList, spells);
     cell = '.';
@@ -625,15 +621,15 @@ bool exploreRoom(Hero &hero, std::vector<Enemy> &enemies, std::vector<Armour> &a
   } else if (cell == 'B') {
     Enemy boss = {.name = trim(CONF["dungeonBoss"]), .attack = 25, .health = 80, .xpReward = 50, .goldReward = 50};
     cell = '.';
-    return battle(hero, boss, classSkills);
+    return battle(hero, boss);
   } else if (cell == 'G') {
     Enemy boss = {.name = trim(CONF["arenaBoss"]), .attack = 26, .health = 85, .xpReward = 60, .goldReward = 60};
     cell = '.';
-    return battle(hero, boss, classSkills);
+    return battle(hero, boss);
   } else if (cell == 'Z') {
     Enemy boss = {.name = trim(CONF["tarkanBoss"]), .attack = 27, .health = 90, .xpReward = 70, .goldReward = 70};
     cell = '.';
-    return battle(hero, boss, classSkills);
+    return battle(hero, boss);
   } else if (cell == 'T') {
     cell = '.';
     return trapRoom(hero);
@@ -768,7 +764,7 @@ void displayMap(const std::vector<std::vector<char>> &map, const std::vector<std
 }
 
 // Gain XP and check for level up
-void gainXP(Hero &hero, int amount, std::vector<ClassSkill> &classSkills) {
+void gainXP(Hero &hero, int amount) {
   hero.xp += amount;
   std::cout << GREEN << hero.name << RESETCOLOUR << YELLOW << " " << trim(CONF["gained"]) << " " << RESETCOLOUR << CYAN << amount << " " << trim(CONF["xp"]) << "!" << RESETCOLOUR << "\n";
   if (hero.xp >= hero.level * 50) { // Level up threshold
@@ -783,7 +779,7 @@ void gainXP(Hero &hero, int amount, std::vector<ClassSkill> &classSkills) {
     hero.mana = std::min(hero.maxMana, hero.mana + 20);
     for (const auto &skill : hero.skills) {
       if (hero.level == skill.unlockLevel) {
-        hero.activeSkill = classSkills[hero.level - 1];
+        hero.activeSkill = hero.skills[hero.level - 1];
         std::cout << GREEN << trim(CONF["newSkillUnlocked"]) << ": " << skill.name << RESETCOLOUR << "\n";
         break;
       }
