@@ -13,11 +13,11 @@ Small Dungeon Based Game that is cross-platform available.
 
 ⚔️ Turn-based combat
 
-🎒 Equipment, Armour, Weapon, Potion, Spell systems
+🎒 Equipment - Armour, Weapon, Potion, Spell, Skill systems
 
 🧙 Choose from multiple character classes
 
-💀 Monster encounters defeat increasingly powerful enemies
+💀 Monster encounters, defeat increasingly powerful enemies
 
 📈 Character progression and equip class-specific gear
 
