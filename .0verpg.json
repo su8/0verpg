@@ -194,7 +194,17 @@
         "smite": "Smite",
         "holyStrike": "Holy Strike",
         "divineWrath": "Divine Wrath",
-        "skill": "Skill"
+        "skill": "Skill",
+        "enemyRecovered": "recovered from the effect",
+        "enemySuffersBurn": "suffers 5 burn damage",
+        "enemyFrozen": "is frozen",
+        "enemyBleeds": "bleeds for 4 damage",
+        "enemyPoisoned": "takes 3 poison damage",
+        "enemyBurning": "The enemy is burning",
+        "enemyBleeding": "The enemy starts bleeding",
+        "enemyPoisoned2": "Poisoned target",
+        "enemyFrozen2": "Enemy frozen by holy power",
+        "cantMove": "cannot move"
     },
   "it": {
         "couldntopen": "Errore: Impossibile aprire ",
@@ -390,7 +400,17 @@
         "smite": "Punizione",
         "holyStrike": "Colpo sacro",
         "divineWrath": "Ira divina",
-        "skill": "Abilità"
+        "skill": "Abilità",
+        "enemyRecovered": "recuperato dall'effetto",
+        "enemySuffersBurn": "subisce 5 danni da ustione",
+        "enemyFrozen": "è congelato",
+        "enemyBleeds": "sanguina per 4 danni",
+        "enemyPoisoned": "subisce 3 danni da veleno",
+        "enemyBurning": "Il nemico sta bruciando",
+        "enemyBleeding": "Il nemico inizia a sanguinare",
+        "enemyPoisoned2": "Bersaglio avvelenato",
+        "enemyFrozen2": "Nemico congelato dal sacro potere",
+        "cantMove": "impossibile muoversi"
     },
   "bg": {
         "couldntopen": "Грешка: He мога да отворя: ",
@@ -586,6 +606,16 @@
         "smite": "Наказание",
         "holyStrike": "Свещен удар",
         "divineWrath": "Божествен гняв",
-        "skill": "Умение"
+        "skill": "Умение",
+        "enemyRecovered": "се възстанови от ефект",
+        "enemySuffersBurn": "страда от 5 кръв от удар",
+        "enemyFrozen": "е замразен",
+        "enemyBleeds": "кърви от 4 удара",
+        "enemyPoisoned": "поема 3 удара от отрова",
+        "enemyBurning": "Противника гори",
+        "enemyBleeding": "Противника започва да кърви",
+        "enemyPoisoned2": "Е отровен",
+        "enemyFrozen2": "Противника е замразен от свещенна сила",
+        "cantMove": "не може да се движи"
     }
 }

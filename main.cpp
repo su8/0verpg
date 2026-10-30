@@ -44,6 +44,16 @@
 #define MAGENTA "\033[1;35m"
 #define BLUE "\033[1;34m"
 
+// Enemy status effect
+enum StatusEffect
+{
+  NONE,
+  BURN,
+  FREEZE,
+  BLEED,
+  POISON
+};
+
 // Armour structure
 struct Armour {
   std::string name;
@@ -71,6 +81,8 @@ struct Enemy {
   int health;
   int xpReward;
   int goldReward;
+  StatusEffect status = NONE;
+  int statusTurns = 0;
 };
 
 // Spell structure
@@ -189,6 +201,8 @@ std::string keyName(int key);
 std::string trim(std::string str);
 // Read a menu number
 int readNumber(void);
+// Enemy status effects
+void processStatus(Enemy &enemy);
 
 int play(int argc, char *argv[]) {
 #ifdef _WIN32
@@ -502,6 +516,11 @@ bool battle(Hero &hero, Enemy enemy) {
     // Hero attacks
     int heroAttack = hero.baseAttack + hero.equippedWeapon.attack + hero.equippedSpell.attack + hero.activeSkill.damage;
     if(std::rand() % 100 <= hero.critChance) { heroAttack *= 2; std::cout << YELLOW << trim(CONF["criticalHit"]) << "!" << RESETCOLOUR << "\n"; }
+    if (std::rand() % 100 < 35) { enemy.status = BURN; enemy.statusTurns = 3; std::cout << trim(CONF["enemyBurning"]) << "!\n"; }
+    else if (std::rand() % 100 < 30) { enemy.status = BLEED; enemy.statusTurns = 4; std::cout << trim(CONF["enemyBleeding"]) << "!\n"; }
+    else if(std::rand() % 100 < 25) { enemy.status = POISON; enemy.statusTurns = 5; std::cout << trim(CONF["enemyPoisoned2"]) << "!\n"; }
+    else if(std::rand() % 100 < 20) { enemy.status = FREEZE; enemy.statusTurns = 1; std::cout << trim(CONF["enemyFrozen2"]) << "!\n"; }
+    processStatus(enemy);
     if (hero.mana >= hero.activeSkill.manaCost) {
       hero.mana -= hero.activeSkill.manaCost;
   std::cout << MAGENTA << hero.name << " " << trim(CONF["uses"]) << " " << hero.activeSkill.name << "!" << RESETCOLOUR << "\n";
@@ -534,6 +553,7 @@ bool battle(Hero &hero, Enemy enemy) {
     int damage = enemy.attack - totalDefense;
     if (damage < 0) damage = 0;
     if(std::rand() % 100 < 15) { std::cout << MAGENTA << hero.name << RESETCOLOUR << GREEN << " " << trim(CONF["dodged"]) << "!" << RESETCOLOUR << "\n"; damage = 0; }
+    if (enemy.status == FREEZE) { std::cout << enemy.name << GREEN << " " << trim(CONF["cantMove"]) << " !" << RESETCOLOUR << "\n"; continue; }
     hero.health -= damage;
     bool companionWasAlive = hero.companion.health > 0;
     hero.companion.health = std::max(0, hero.companion.health - damage);
@@ -897,4 +917,34 @@ int readNumber(void) {
   std::cin.clear();
   std::cin.ignore(1000, '\n');
   return -1;
+}
+
+void processStatus(Enemy &enemy)
+{
+  switch (enemy.status) {
+    case BURN: {
+      std::cout << enemy.name << " " << trim(CONF["enemySuffersBurn"]) << "!\n";
+      enemy.health -= 5;
+    }
+      break;
+    case FREEZE:
+      std::cout << enemy.name << " " << trim(CONF["enemyFrozen"]) << " !\n";
+      break;
+    case BLEED: {
+      std::cout << enemy.name << " " << trim(CONF["enemyBleeds"]) << " !\n";
+      enemy.health -= 4;
+    }
+      break;
+    case POISON: {
+      std::cout << enemy.name << " " << trim(CONF["enemyPoisoned"]) << "!\n";
+      enemy.health -= 3;
+    }
+      break;
+    default:
+      break;
+  }
+  if (enemy.status != NONE) {
+    enemy.statusTurns--;
+    if (enemy.statusTurns <= 0) { enemy.status = NONE; std::cout << enemy.name << " " << trim(CONF["enemyRecovered"]) << ".\n"; }
+  }
 }
