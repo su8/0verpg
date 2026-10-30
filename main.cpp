@@ -104,6 +104,7 @@ struct Hero {
   int baseAttack;
   int mana;
   int maxMana;
+  int critChance;
   Armour equippedArmour;
   Weapon equippedWeapon;
   Spell equippedSpell;
@@ -115,7 +116,8 @@ struct Hero {
   std::vector<Spell> inventorySpells;
   std::vector<ClassSkill> skills;
   int gold;
-  int x, y;
+  int x;
+  int y;
   int xp;
   int level;
   int maxHP;
@@ -306,6 +308,7 @@ int play(int argc, char *argv[]) {
   };
   hero.skills.reserve(3);
   if (classChoice == 0) {
+    hero.critChance = 15;
     hero.skills = { // Warrior
       {.name = trim(CONF["cleave"]), .damage = 2, .manaCost = 0, .unlockLevel = 1},
       {.name = trim(CONF["shieldBash"]), .damage = 4, .manaCost = 10, .unlockLevel = 2},
@@ -313,6 +316,7 @@ int play(int argc, char *argv[]) {
     };
   }
   else if (classChoice == 1) {
+    hero.critChance = 10;
     hero.skills = { // Mage
       {.name = trim(CONF["fireball"]), .damage = 2, .manaCost = 5, .unlockLevel = 1},
       {.name = trim(CONF["iceSpike"]), .damage = 4, .manaCost = 10, .unlockLevel = 2},
@@ -320,6 +324,7 @@ int play(int argc, char *argv[]) {
     };
   }
   else if (classChoice == 2) {
+    hero.critChance = 35;
     hero.skills = { // Rogue
       {.name = trim(CONF["backstab"]), .damage = 2, .manaCost = 5, .unlockLevel = 1},
       {.name = trim(CONF["poisonStrike"]), .damage = 4, .manaCost = 10, .unlockLevel = 2},
@@ -327,6 +332,7 @@ int play(int argc, char *argv[]) {
     };
   }
   else {
+    hero.critChance = 20;
       hero.skills = { // Paladin
       {.name = trim(CONF["smite"]), .damage = 2, .manaCost = 5, .unlockLevel = 1},
       {.name = trim(CONF["holyStrike"]), .damage = 4, .manaCost = 10, .unlockLevel = 2},
@@ -495,7 +501,7 @@ bool battle(Hero &hero, Enemy enemy) {
   while (hero.health > 0 && enemy.health > 0) {
     // Hero attacks
     int heroAttack = hero.baseAttack + hero.equippedWeapon.attack + hero.equippedSpell.attack + hero.activeSkill.damage;
-    if(std::rand() % 100 < 20) { heroAttack *= 2; std::cout << YELLOW << trim(CONF["criticalHit"]) << "!" << RESETCOLOUR << "\n"; }
+    if(std::rand() % 100 <= hero.critChance) { heroAttack *= 2; std::cout << YELLOW << trim(CONF["criticalHit"]) << "!" << RESETCOLOUR << "\n"; }
     if (hero.mana >= hero.activeSkill.manaCost) {
       hero.mana -= hero.activeSkill.manaCost;
   std::cout << MAGENTA << hero.name << " " << trim(CONF["uses"]) << " " << hero.activeSkill.name << "!" << RESETCOLOUR << "\n";
