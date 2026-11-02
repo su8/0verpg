@@ -762,17 +762,21 @@ std::vector<std::vector<char>> generateMap(int size) {
       else if (r == 5) map[i][j] = 'S'; // mana shrine
     }
   }
-  // Place bosses in random locations
-  bool bossSpawned = false;
-  int bx = std::rand() % size;
-  int by = std::rand() % size;
-  map[bx][by] = 'B';
-  int bx2 = std::rand() % size;
-  int by2 = std::rand() % size;
-  int bx3 = std::rand() % size;
-  int by3 = std::rand() % size;
-  if (by != by2 && bx != bx2) { map[bx2][by2] = 'G'; bossSpawned = true; }
-  if (!bossSpawned && (by3 != by && bx3 != bx)) { map[bx3][by3] = 'Z'; }
+  // Place bosses without overwriting the start or each other.
+  // Fixed: previously required BOTH coordinates to differ, so bosses rarely spawned.
+  auto pick = [&](char c) {
+    for (int tries = 0; tries < 100; ++tries) {
+      int x = std::rand() % size;
+      int y = std::rand() % size;
+      if (x == 0 && y == 0) continue;                  // player start
+      if (map[x][y] == 'B' || map[x][y] == 'G' || map[x][y] == 'Z') continue;
+      map[x][y] = c;
+      return;
+    }
+  };
+  pick('B');
+  pick('G');
+  pick('Z');
   return map;
 }
 
