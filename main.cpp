@@ -497,7 +497,7 @@ void equipSpell(Hero &hero) {
     std::cout << YELLOW << i+1 << ". " << RESETCOLOUR << coloursArr[std::rand() % coloursArrLen] << hero.inventorySpells[i].name << RESETCOLOUR
       << CYAN << " (" << trim(CONF["attack"]) << " +" << RESETCOLOUR << YELLOW << hero.inventorySpells[i].attack << RESETCOLOUR << " -"
       << YELLOW << hero.inventorySpells[i].manaCost << " " << trim(CONF["manaCost"]) << RESETCOLOUR  << CYAN << ")"
-      << RESETCOLOUR << BLUE << " (" << (hero.inventorySpells[i].name == hero.equippedSpell.name ? trim(CONF["currentlyEquippedSpell"]) : trim(CONF["goodSpell"])) << ")" << RESETCOLOUR "\n";
+      << RESETCOLOUR << BLUE << " (" << (hero.inventorySpells[i].name == hero.equippedSpell.name ? trim(CONF["currentlyEquippedSpell"]) : trim(CONF["goodSpell"])) << ")" << RESETCOLOUR << "\n";
   }
   std::cout << trim(CONF["chooseSpellNumber"]) << ": ";
   int index;
@@ -554,7 +554,7 @@ bool battle(Hero &hero, Enemy enemy) {
     if (damage < 0) damage = 0;
     if (std::rand() % 100 < 15) { std::cout << MAGENTA << hero.name << RESETCOLOUR << GREEN << " " << trim(CONF["dodged"]) << "!" << RESETCOLOUR << "\n"; damage = 0; }
     if (enemy.status == FREEZE) { std::cout << enemy.name << GREEN << " " << trim(CONF["cantMove"]) << " !" << RESETCOLOUR << "\n"; continue; }
-    hero.health -= damage;
+    hero.health = std::max(0, hero.health - damage);
     bool companionWasAlive = hero.companion.health > 0;
     hero.companion.health = std::max(0, hero.companion.health - damage);
     std::cout << RED << enemy.name << RESETCOLOUR << " " << trim(CONF["attacksFor"]) << " " << RED << enemy.attack << RESETCOLOUR
@@ -615,7 +615,7 @@ void usePotion(Hero &hero) {
 // Trap room
 bool trapRoom(Hero &hero) {
   int damage = 5 + std::rand() % 16; // 5-20 damage
-  hero.health -= damage;
+  hero.health = std::max(0, hero.health - damage);
   std::cout << RED << "💥 " << trim(CONF["trapTriggered"]) << " " << damage << " " << trim(CONF["damageHP"]) <<  ": " << hero.health << RESETCOLOUR << "\n";
   return hero.health > 0;
 }
