@@ -111,7 +111,7 @@ enum ArrowKey { KEY_UP = 1001, KEY_DOWN, KEY_RIGHT, KEY_LEFT };
 std::string configHome = std::ifstream(".0verpg.json") ? std::string(".0verpg.json") : (std::getenv("HOME") ? std::string(std::getenv("HOME")) + std::string("/") : std::string("./")) + ".0verpg.json";
 std::string userLang = "en";
 std::ifstream cfg(configHome);
-const char *SAVE_FILE = ".0verpg.save";
+const std::string SAVE_FILE = std::ifstream(".0verpg.save") ? std::string(".0verpg.save") : (std::getenv("HOME") ? std::string(std::getenv("HOME")) + std::string("/") : std::string("./")) + ".0verpg.save";
 // Inventory weapons/armours colours for their names
 const char *coloursArr[] = { BLUE, MAGENTA, GREEN, RED, YELLOW, CYAN };
 const int coloursArrLen = sizeof(coloursArr) / sizeof(coloursArr[0]);
@@ -386,7 +386,7 @@ int play(int argc, char *argv[]) {
       if (!exploreRoom(hero, enemies, armours, weapons, dungeon[hero.x][hero.y], potionsList, spells, floor)) {
         std::cout << RED << "\n💀 " << trim(CONF["gameOver"]) << RESETCOLOUR << "\n";
         std::cout << CYAN << T("kills", "Enemies defeated") << ": " << hero.kills << " | " << T("level", "Level") << ": " << hero.level << RESETCOLOUR << "\n";
-        std::remove(SAVE_FILE); // permadeath
+        std::remove(SAVE_FILE.c_str()); // permadeath
         return EXIT_SUCCESS;
       }
       bool bossAlive = false;
@@ -406,7 +406,7 @@ int play(int argc, char *argv[]) {
   }
   std::cout << GREEN << "\n🎉 " << trim(CONF["win"]) << RESETCOLOUR << "\n";
   std::cout << CYAN << T("kills", "Enemies defeated") << ": " << hero.kills << " | " << T("gold", "Gold") << ": " << hero.gold << " | " << T("level", "Level") << ": " << hero.level << RESETCOLOUR << "\n";
-  std::remove(SAVE_FILE);
+  std::remove(SAVE_FILE.c_str());
   return EXIT_SUCCESS;
 }
 
