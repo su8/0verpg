@@ -204,7 +204,15 @@
         "enemyBleeding": "The enemy starts bleeding",
         "enemyPoisoned2": "Poisoned target",
         "enemyFrozen2": "Enemy frozen by holy power",
-        "cantMove": "cannot move"
+        "cantMove": "cannot move",
+        "continueSave": "Saved game found. 1. Continue  2. New game",
+        "saveLoaded": "Game loaded.",
+        "gameSaved": "Game saved",
+        "kills": "Enemies defeated",
+        "noItems": "Nothing to equip",
+        "elite": "Elite",
+        "merchantRoom": "A wandering merchant offers his wares",
+        "keyTaken": "That key is already used or reserved, press another one"
     },
   "it": {
         "couldntopen": "Errore: Impossibile aprire ",
@@ -410,7 +418,15 @@
         "enemyBleeding": "Il nemico inizia a sanguinare",
         "enemyPoisoned2": "Bersaglio avvelenato",
         "enemyFrozen2": "Nemico congelato dal sacro potere",
-        "cantMove": "impossibile muoversi"
+        "cantMove": "impossibile muoversi",
+        "continueSave": "Trovata una partita salvata. 1. Continua  2. Nuova partita",
+        "saveLoaded": "Partita caricata.",
+        "gameSaved": "Partita salvata",
+        "kills": "Nemici sconfitti",
+        "noItems": "Nessun oggetto da equipaggiare",
+        "elite": "Élite",
+        "merchantRoom": "Un mercante itinerante offre la sua merce",
+        "keyTaken": "Questo tasto è già in uso o riservato; scegline un altro"
     },
   "bg": {
         "couldntopen": "Грешка: He мога да отворя: ",
@@ -616,6 +632,14 @@
         "enemyBleeding": "Противника започва да кърви",
         "enemyPoisoned2": "Е отровен",
         "enemyFrozen2": "Противника е замразен от свещенна сила",
-        "cantMove": "не може да се движи"
+        "cantMove": "не може да се движи",
+        "continueSave": "Намерена е запазена игра. 1. Продължаване  2. Нова игра",
+        "saveLoaded": "Играта е заредена.",
+        "gameSaved": "Играта е запазена",
+        "kills": "Победени врагове",
+        "noItems": "Няма предмети за екипиране",
+        "elite": "Елитен",
+        "merchantRoom": "Странстващ търговец предлага стоките си",
+        "keyTaken": "Този клавиш вече се използва или е зает; изберете друг"
     }
 }
