@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <limits>
+#include <filesystem>
 
 #ifdef _WIN32
 #include <conio.h>
@@ -447,10 +448,15 @@ bool saveGame(const Hero &h, int floor) {
   j["armour"] = toJson(h.equippedArmour); j["weapon"] = toJson(h.equippedWeapon); j["spell"] = toJson(h.equippedSpell);
   j["armours"] = listJson(h.inventoryArmours); j["weapons"] = listJson(h.inventoryWeapons);
   j["potions"] = listJson(h.inventoryPotions); j["spells"] = listJson(h.inventorySpells);
-  std::ofstream f(SAVE_FILE);
-  if (!f) { return false; }
-  f << j.dump(2);
-  return static_cast<bool>(f);
+  const std::string tmp = SAVE_FILE + ".tmp"; {
+    std::ofstream f(tmp);
+    if (!f) { return false; }
+    f << j.dump(2);
+    if (!f) { return false; }
+  }
+  std::error_code ec;
+  std::filesystem::rename(tmp, SAVE_FILE, ec); // replaces the old save on Linux and Windows
+  return !ec;
 }
 
 // Copy a loaded save onto a freshly created hero of the same class. Throws json::exception on a broken save
@@ -467,6 +473,12 @@ void applySave(Hero &hero, const json &j) {
   for (const auto &x : j.at("weapons")) hero.inventoryWeapons.emplace_back(weaponFrom(x));
   for (const auto &x : j.at("potions")) hero.inventoryPotions.emplace_back(potionFrom(x));
   for (const auto &x : j.at("spells")) hero.inventorySpells.emplace_back(spellFrom(x));
+  hero.level = std::max(1, hero.level);
+  hero.gold = std::max(0, hero.gold); hero.xp = std::max(0, hero.xp);
+  hero.maxHP = std::max(1, hero.maxHP); hero.health = std::clamp(hero.health, 1, hero.maxHP);
+  hero.maxMana = std::max(0, hero.maxMana); hero.mana = std::clamp(hero.mana, 0, hero.maxMana);
+  hero.companion.maxHP = std::max(1, hero.companion.maxHP);
+  hero.companion.health = std::clamp(hero.companion.health, 0, hero.companion.maxHP);
   for (const auto &s : hero.skills) { if (s.unlockLevel <= hero.level) { hero.activeSkill = s; } }
 }
 
