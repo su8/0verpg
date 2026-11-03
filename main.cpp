@@ -25,6 +25,7 @@
 #include <fstream>
 #include <algorithm>
 #include <cstdio>
+#include <limits>
 
 #ifdef _WIN32
 #include <conio.h>
@@ -108,10 +109,11 @@ int keys[8];
 enum ArrowKey { KEY_UP = 1001, KEY_DOWN, KEY_RIGHT, KEY_LEFT };
 
 // The config in the current directory wins, so the game runs straight from the repository; otherwise use the one in HOME
-std::string configHome = std::ifstream(".0verpg.json") ? std::string(".0verpg.json") : (std::getenv("HOME") ? std::string(std::getenv("HOME")) + std::string("/") : std::string("./")) + ".0verpg.json";
+static std::string resolvePath(const char *name);
+const std::string configHome = resolvePath(".0verpg.json");
 std::string userLang = "en";
 std::ifstream cfg(configHome);
-const std::string SAVE_FILE = std::ifstream(".0verpg.save") ? std::string(".0verpg.save") : (std::getenv("HOME") ? std::string(std::getenv("HOME")) + std::string("/") : std::string("./")) + ".0verpg.save";
+const std::string SAVE_FILE = resolvePath(".0verpg.save.json");
 // Inventory weapons/armours colours for their names
 const char *coloursArr[] = { BLUE, MAGENTA, GREEN, RED, YELLOW, CYAN };
 const int coloursArrLen = sizeof(coloursArr) / sizeof(coloursArr[0]);
@@ -945,7 +947,7 @@ std::string trim(std::string str) {
 // Read a menu number; -1 on bad input, exits if stdin is closed
 int readNumber(void) {
   int n;
-  if (std::cin >> n) { return n; }
+  if (std::cin >> n) { std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); return n; }
   if (std::cin.eof()) { std::exit(EXIT_SUCCESS); }
   std::cin.clear();
   std::cin.ignore(1000, '\n');
@@ -980,4 +982,11 @@ bool processStatus(Enemy &enemy) {
     if (enemy.statusTurns <= 0) { enemy.status = NONE; std::cout << enemy.name << " " << trim(CONF["enemyRecovered"]) << ".\n"; }
   }
   return skipTurn;
+}
+
+static std::string resolvePath(const char *name) {
+  if (std::ifstream(name)) return name;
+  const char *home = std::getenv("HOME");
+  if (home) return std::string(home) + std::string("/") + std::string(name);
+  return std::string(name);
 }
