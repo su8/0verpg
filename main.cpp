@@ -985,7 +985,7 @@ bool processStatus(Enemy &enemy) {
 }
 
 static std::string resolvePath(const char *name) {
-  if (std::ifstream(name)) return name;
+  if (std::ifstream(name)) return std::string(name);
   const char *home = std::getenv("HOME");
   if (home) return std::string(home) + std::string("/") + std::string(name);
   return std::string(name);
