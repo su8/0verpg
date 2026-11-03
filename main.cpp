@@ -514,7 +514,8 @@ bool battle(Hero &hero, Enemy enemy) {
   std::cout << "\n⚔ " << trim(CONF["battle"]) << " " << CYAN << hero.name << RESETCOLOUR << " vs " << RED << enemy.name << RESETCOLOUR << "\n";
   while (hero.health > 0 && enemy.health > 0) {
     // Hero attacks
-    int heroAttack = hero.baseAttack + hero.equippedWeapon.attack + hero.equippedSpell.attack + hero.activeSkill.damage;
+    int heroAttack = hero.baseAttack + hero.equippedWeapon.attack + hero.equippedSpell.attack;
+    if (hero.mana - hero.activeSkill.damage > 0) { heroAttack += hero.activeSkill.damage; }
     if (std::rand() % 100 <= hero.critChance) { heroAttack *= 2; std::cout << YELLOW << trim(CONF["criticalHit"]) << "!" << RESETCOLOUR << "\n"; }
     if (std::rand() % 100 < 20) { enemy.status = FREEZE; enemy.statusTurns = 1; std::cout << trim(CONF["enemyFrozen2"]) << "!\n"; }
     else if (std::rand() % 100 < 25) { enemy.status = POISON; enemy.statusTurns = 3; std::cout << trim(CONF["enemyPoisoned2"]) << "!\n"; }
