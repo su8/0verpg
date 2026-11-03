@@ -448,12 +448,11 @@ bool saveGame(const Hero &h, int floor) {
   j["armour"] = toJson(h.equippedArmour); j["weapon"] = toJson(h.equippedWeapon); j["spell"] = toJson(h.equippedSpell);
   j["armours"] = listJson(h.inventoryArmours); j["weapons"] = listJson(h.inventoryWeapons);
   j["potions"] = listJson(h.inventoryPotions); j["spells"] = listJson(h.inventorySpells);
-  const std::string tmp = SAVE_FILE + ".tmp"; {
-    std::ofstream f(tmp);
-    if (!f) { return false; }
-    f << j.dump(2);
-    if (!f) { return false; }
-  }
+  const std::string tmp = SAVE_FILE + ".tmp";
+  std::ofstream f(tmp);
+  if (!f) { return false; }
+  f << j.dump(2);
+  if (!f) { return false; }
   std::error_code ec;
   std::filesystem::rename(tmp, SAVE_FILE, ec); // replaces the old save on Linux and Windows
   return !ec;
