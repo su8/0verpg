@@ -16,19 +16,23 @@
  * MA 02110-1301, USA.
  */
 // Build: g++ -std=c++20 -O2 -Wall -Wextra 0verpg.cpp -o 0verpg   (needs json.hpp next to it)
+
+#include <algorithm>
+#include <cctype>
+#include <cstdio>
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <limits>
+#include <random>
 #include <string>
 #include <vector>
-#include <cstdlib>
-#include <cctype>
-#include <random>
-#include <fstream>
-#include <algorithm>
-#include <cstdio>
-#include <limits>
-#include <filesystem>
 
 #ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX // keep std::min/std::max from <windows.h> macros
+#endif
 #include <conio.h>
 #include <windows.h>
 #else
@@ -117,7 +121,7 @@ std::ifstream cfg(configHome);
 const std::string SAVE_FILE = resolvePath(".0verpg.save.json");
 // Inventory weapons/armours colours for their names
 const char *coloursArr[] = { BLUE, MAGENTA, GREEN, RED, YELLOW, CYAN };
-const int coloursArrLen = sizeof(coloursArr) / sizeof(coloursArr[0]);
+const int coloursArrLen = static_cast<int>(sizeof(coloursArr) / sizeof(coloursArr[0]));
 
 using json = nlohmann::json;
 json config;
@@ -125,7 +129,7 @@ json config;
 
 // Random numbers in [0, n) - replaces std::rand()
 static std::mt19937 rng{std::random_device{}()};
-static int rnd(int n) { return std::uniform_int_distribution<int>(0, n - 1)(rng); }
+static int rnd(int n) { return n > 0 ? std::uniform_int_distribution<int>(0, n - 1)(rng) : 0; }
 
 void equipArmour(Hero &hero);
 void equipWeapon(Hero &hero, std::vector<Weapon> &weapons, int index, int usedFromWebShop);
@@ -173,6 +177,10 @@ int play(int argc, char *argv[]) {
   if (!cfg) { std::cerr << "Error: Could not open " << configHome << "\n"; return EXIT_FAILURE; }
   cfg >> config;
   cfg.close();
+  if (!config.contains(userLang) || !config[userLang].is_object()) {
+    std::cerr << "Error: " << configHome << " has no \"" << userLang << "\" translation\n";
+    return EXIT_FAILURE;
+  }
   setupKeys();
 
   // Saved game (written at the start of every floor)
@@ -187,8 +195,12 @@ int play(int argc, char *argv[]) {
     }
     if (loaded) {
       std::cout << GREEN << T("continueSave", "Saved game found. 1. Continue  2. New game") << RESETCOLOUR << "\n";
-      if (readNumber() == 1) { classChoice = save["class"].get<int>() + 1; }
-      else { loaded = false; }
+      if (readNumber() == 1) {
+        try {
+          classChoice = save.at("class").get<int>() + 1;
+          if (classChoice < 1 || classChoice > 4) { loaded = false; classChoice = 0; }
+        } catch (const json::exception &) { loaded = false; classChoice = 0; }
+      } else { loaded = false; }
     }
   }
 
@@ -395,7 +407,7 @@ int play(int argc, char *argv[]) {
       bool bossAlive = false;
       for (int i = 0; i < mapSize; ++i) {
         for (int j = 0; j < mapSize; ++j) {
-          if (dungeon[i][j] == 'B' || dungeon[i][j] == 'G' || dungeon[i][j] == 'Z') bossAlive = true;
+          if (dungeon[i][j] == 'B' || dungeon[i][j] == 'G' || dungeon[i][j] == 'Z') { bossAlive = true; }
         }
       }
       if (!bossAlive) {
@@ -420,6 +432,10 @@ int main(int argc, char *argv[]) {
     std::cerr << "Error: " << configHome << " is outdated or broken, copy the new .0verpg.json from the repository (" << e.what() << ")\n";
     return EXIT_FAILURE;
   }
+  catch (const std::exception &e) {
+    std::cerr << "Error: " << e.what() << "\n";
+    return EXIT_FAILURE;
+  }
 }
 
 // ---------------------------------------------------------------- save / load
@@ -437,6 +453,18 @@ static Weapon weaponFrom(const json &j) { return {j.at("n").get<std::string>(), 
 static Potion potionFrom(const json &j) { return {j.at("n").get<std::string>(), j.at("h").get<int>(), j.at("c").get<int>()}; }
 static Spell spellFrom(const json &j) { return {j.at("n").get<std::string>(), j.at("a").get<int>(), j.at("m").get<int>()}; }
 
+// std::filesystem::rename() does not replace an existing file on Windows
+static bool replaceFile(const std::string &from, const std::string &to) {
+  std::error_code ec;
+  std::filesystem::rename(from, to, ec);
+  if (!ec) { return true; }
+  ec.clear();
+  std::filesystem::remove(to, ec);
+  ec.clear();
+  std::filesystem::rename(from, to, ec);
+  return !ec;
+}
+
 // Save the hero; "floor" is the floor to resume at
 bool saveGame(const Hero &h, int floor) {
   json j;
@@ -449,13 +477,13 @@ bool saveGame(const Hero &h, int floor) {
   j["armours"] = listJson(h.inventoryArmours); j["weapons"] = listJson(h.inventoryWeapons);
   j["potions"] = listJson(h.inventoryPotions); j["spells"] = listJson(h.inventorySpells);
   const std::string tmp = SAVE_FILE + ".tmp";
-  std::ofstream f(tmp);
-  if (!f) { return false; }
-  f << j.dump(2);
-  if (!f) { return false; }
-  std::error_code ec;
-  std::filesystem::rename(tmp, SAVE_FILE, ec); // replaces the old save on Linux and Windows
-  return !ec;
+  {
+    std::ofstream f(tmp);
+    if (!f) { return false; }
+    f << j.dump(2);
+    if (!f) { std::remove(tmp.c_str()); return false; }
+  }
+  return replaceFile(tmp, SAVE_FILE);
 }
 
 // Copy a loaded save onto a freshly created hero of the same class. Throws json::exception on a broken save
@@ -468,10 +496,10 @@ void applySave(Hero &hero, const json &j) {
   hero.companion.health = j.at("compHP").get<int>(); hero.companion.maxHP = j.at("compMax").get<int>();
   hero.equippedArmour = armourFrom(j.at("armour")); hero.equippedWeapon = weaponFrom(j.at("weapon")); hero.equippedSpell = spellFrom(j.at("spell"));
   hero.inventoryArmours.clear(); hero.inventoryWeapons.clear(); hero.inventoryPotions.clear(); hero.inventorySpells.clear();
-  for (const auto &x : j.at("armours")) hero.inventoryArmours.emplace_back(armourFrom(x));
-  for (const auto &x : j.at("weapons")) hero.inventoryWeapons.emplace_back(weaponFrom(x));
-  for (const auto &x : j.at("potions")) hero.inventoryPotions.emplace_back(potionFrom(x));
-  for (const auto &x : j.at("spells")) hero.inventorySpells.emplace_back(spellFrom(x));
+  for (const auto &x : j.at("armours")) { hero.inventoryArmours.emplace_back(armourFrom(x)); }
+  for (const auto &x : j.at("weapons")) { hero.inventoryWeapons.emplace_back(weaponFrom(x)); }
+  for (const auto &x : j.at("potions")) { hero.inventoryPotions.emplace_back(potionFrom(x)); }
+  for (const auto &x : j.at("spells")) { hero.inventorySpells.emplace_back(spellFrom(x)); }
   hero.level = std::max(1, hero.level);
   hero.gold = std::max(0, hero.gold); hero.xp = std::max(0, hero.xp);
   hero.maxHP = std::max(1, hero.maxHP); hero.health = std::clamp(hero.health, 1, hero.maxHP);
@@ -517,6 +545,7 @@ void equipWeapon(Hero &hero, std::vector<Weapon> &weapons, int index, int usedFr
 }
 
 void equipSpell(Hero &hero) {
+  if (hero.inventorySpells.empty()) { std::cout << RED << T("noItems", "Nothing to equip") << "!" << RESETCOLOUR << "\n"; return; }
   std::cout << MAGENTA << trim(CONF["curEquippedSpell"]) << ": " << RESETCOLOUR << GREEN << hero.equippedSpell.name << " (+" << hero.equippedSpell.attack << " " << trim(CONF["attack"]) << " " << trim(CONF["manaCost"]) << " -" << hero.equippedSpell.manaCost << ")" << RESETCOLOUR << "\n";
   std::cout << trim(CONF["inventorySpells"]) << ":\n";
   for (size_t i = 0; i < hero.inventorySpells.size(); ++i) {
@@ -573,9 +602,10 @@ bool battle(Hero &hero, Enemy enemy) {
     }
     bool skipTurn = processStatus(enemy);
     enemy.health -= heroAttack;
-    if (hero.companion.health > 0) { enemy.health -= hero.companion.attack; }
+    int companionAttack = hero.companion.health > 0 ? hero.companion.attack : 0;
+    enemy.health -= companionAttack;
     std::cout << CYAN << hero.name << RESETCOLOUR << " " << trim(CONF["attacksFor"]) << " " << YELLOW << heroAttack << RESETCOLOUR << " " << trim(CONF["damage"]) << "! "
-      << BLUE << trim(CONF["companionAttacksFor"]) << " " << (hero.companion.health > 0 ? hero.companion.attack : 0) << " " << trim(CONF["damage"]) << " " << RESETCOLOUR
+      << BLUE << trim(CONF["companionAttacksFor"]) << " " << companionAttack << " " << trim(CONF["damage"]) << " " << RESETCOLOUR
       << GREEN << (manaPaid ? trim(CONF["manaUsed"]) : trim(CONF["noManaUsed"])) << RESETCOLOUR << " | " << enemy.name << " " << trim(CONF["hp"])
       << ": " << RED << std::max(0, enemy.health) << RESETCOLOUR << "\n";
     if (enemy.health <= 0) {
@@ -606,7 +636,7 @@ bool battle(Hero &hero, Enemy enemy) {
     if (companionWasAlive && hero.companion.health == 0) { std::cout << RED << trim(CONF["companion"]) << " " << trim(CONF["hasFallen"]) << "..." << RESETCOLOUR << "\n"; }
     if (hero.health <= 0) { std::cout << RED << hero.name << " " << trim(CONF["hasFallen"]) << "..." << RESETCOLOUR << "\n"; return false; }
   }
-  return false;
+  return hero.health > 0;
 }
 
 void lootRoom(Hero &hero, std::vector<Armour> &armours, std::vector<Weapon> &weapons, std::vector<Potion> &potionsList, std::vector<Spell> &spells) {
@@ -637,13 +667,13 @@ void usePotion(Hero &hero) {
   if (!hero.inventoryPotions.empty()) {
     if (hero.companion.health <= 0) { hero.companion.health = 0; std::cout << GREEN << trim(CONF["resurrectCompanion"]) << RESETCOLOUR << "\n"; }
     Potion p = hero.inventoryPotions.back();
+    hero.inventoryPotions.pop_back();
     hero.mana = std::min(hero.maxMana, hero.mana + 20);
     hero.health = std::min(hero.maxHP, hero.health + p.healAmount);
     hero.companion.health = std::min(hero.companion.maxHP, hero.companion.health + p.healAmount);
     std::cout << GREEN << trim(CONF["potionUsed"]) << "!" << RESETCOLOUR << "  +" << p.healAmount << " " << trim(CONF["hpCurrentHP"]) << ": " << MAGENTA << hero.health
       << RESETCOLOUR << " " << CYAN << trim(CONF["companionHeal"]) << " " << hero.companion.health << RESETCOLOUR
       << " " << trim(CONF["addedMana"]) << ": " << BLUE << hero.mana << " " << trim(CONF["mana"]) << RESETCOLOUR << "\n";
-    hero.inventoryPotions.pop_back();
   } else {
     std::cout << RED << trim(CONF["noPotionsAvailable"]) << "!" << RESETCOLOUR << "\n";
   }
@@ -714,7 +744,7 @@ bool exploreRoom(Hero &hero, std::vector<Enemy> &enemies, std::vector<Armour> &a
     cell = '.';
     return true;
   } else if (cell == 'M') {
-    // NEW: wandering merchant, reuses the shop between floors
+    // Wandering merchant, reuses the shop between floors
     std::cout << CYAN << "🧙 " << T("merchantRoom", "A wandering merchant offers his wares") << RESETCOLOUR << "\n";
     shop(hero, armours, potionsList);
     cell = '.';
@@ -760,7 +790,7 @@ void weaponShop(Hero &hero, std::vector<Weapon> &weapons) {
   std::cout << BLUE << trim(CONF["chooseWeaponNumber"]) << ": " << RESETCOLOUR;
   int choice = readNumber(); // readNumber() also handles a closed stdin, unlike the raw std::cin
   if (choice < 0 || choice > static_cast<int>(weapons.size())) { std::cout << RED << trim(CONF["invalidChoiceSkipping"]) << "." << RESETCOLOUR << "\n"; return; }
-  if (choice == 0) return;
+  if (choice == 0) { return; }
   Weapon selected = weapons[choice-1];
   if (hero.gold >= selected.cost) {
     hero.gold -= selected.cost;
@@ -777,7 +807,7 @@ void potionShop(Hero &hero, std::vector<Potion> &potionsList) {
   std::cout << BLUE << trim(CONF["choosePotion"]) << ": " << RESETCOLOUR;
   int choice = readNumber();
   if (choice < 0 || choice > static_cast<int>(potionsList.size())) { std::cout << trim(CONF["invalidChoiceSkipping"]) << ".\n"; return; }
-  if (choice == 0) return;
+  if (choice == 0) { return; }
   Potion selected = potionsList[choice-1];
   if (hero.gold >= selected.cost) {
     hero.gold -= selected.cost;
@@ -798,7 +828,7 @@ std::vector<std::vector<char>> generateMap(int size) {
         case 3: map[i][j] = 'C'; break; // Chest
         case 4: map[i][j] = 'F'; break; // Healing fountain
         case 5: map[i][j] = 'S'; break; // Mana shrine
-        case 6: map[i][j] = 'M'; break; // Merchant (new)
+        case 6: map[i][j] = 'M'; break; // Merchant
         default: break;                 // Empty
       }
     }
@@ -808,8 +838,8 @@ std::vector<std::vector<char>> generateMap(int size) {
     for (int tries = 0; tries < 100; ++tries) {
       int x = rnd(size);
       int y = rnd(size);
-      if (x == 0 && y == 0) continue;
-      if (map[x][y] == 'B' || map[x][y] == 'G' || map[x][y] == 'Z') continue;
+      if (x == 0 && y == 0) { continue; }
+      if (map[x][y] == 'B' || map[x][y] == 'G' || map[x][y] == 'Z') { continue; }
       map[x][y] = c;
       return;
     }
@@ -824,9 +854,9 @@ void displayMap(const std::vector<std::vector<char>> &map, const std::vector<std
   std::cout << "\n" << GREEN << trim(CONF["dungeonMap"]) << ":" << RESETCOLOUR << "\n";
   for (int i = 0; i < static_cast<int>(map.size()); ++i) {
     for (int j = 0; j < static_cast<int>(map[i].size()); ++j) {
-      if (i == hero.x && j == hero.y) std::cout << GREEN << 'H' << RESETCOLOUR << ' ';
-      else if (visited[i][j]) std::cout << map[i][j] << ' ';
-      else std::cout << YELLOW << '?' << RESETCOLOUR << ' ';
+      if (i == hero.x && j == hero.y) { std::cout << GREEN << 'H' << RESETCOLOUR << ' '; }
+      else if (visited[i][j]) { std::cout << map[i][j] << ' '; }
+      else { std::cout << YELLOW << '?' << RESETCOLOUR << ' '; }
     }
     std::cout << "\n";
   }
@@ -895,8 +925,9 @@ int readKey(void) {
     unsigned char intro = 0;
     if (read(STDIN_FILENO, &intro, 1) == 1 && (intro == '[' || intro == 'O')) {
       for (int len = 0; len < 16 && read(STDIN_FILENO, &c, 1) == 1; len++) {
-        if (intro == 'O' || (c >= '@' && c <= '~')) {
-          if (len == 0 && c >= 'A' && c <= 'D') { result = KEY_UP + (c - 'A'); } // up, down, right, left
+        if (c >= '@' && c <= '~') {
+          // Arrow keys end in A/B/C/D, including CSI sequences with modifiers
+          if (c >= 'A' && c <= 'D') { result = KEY_UP + (c - 'A'); }
           break;
         }
       }
@@ -957,11 +988,11 @@ std::string trim(std::string str) {
 
 // Read a menu number; -1 on bad input, exits if stdin is closed
 int readNumber(void) {
-  int n;
+  int n = 0;
   if (std::cin >> n) { std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); return n; }
   if (std::cin.eof()) { std::exit(EXIT_SUCCESS); }
   std::cin.clear();
-  std::cin.ignore(1000, '\n');
+  std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
   return -1;
 }
 
@@ -996,8 +1027,9 @@ bool processStatus(Enemy &enemy) {
 }
 
 static std::string resolvePath(const char *name) {
-  if (std::ifstream(name)) return std::string(name);
+  if (std::ifstream(name)) { return std::string(name); }
   const char *home = std::getenv("HOME");
-  if (home) return std::string(home) + std::string("/") + std::string(name);
+  if (!home) { home = std::getenv("USERPROFILE"); }
+  if (home) { return std::string(home) + "/" + name; }
   return std::string(name);
 }
