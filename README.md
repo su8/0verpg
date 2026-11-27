@@ -47,7 +47,7 @@ sudo make install
 
 The game first looks for `.0verpg.json` in the current directory, so you can also run `./0verpg en` straight from the repository without copying it. A `.0verpg.json` in the current directory takes priority over the one in `~/`.
 
-Now to run the game type `0verpg en` this will use the English version. Currently there are three languages `en`, `bg` - Bulgarian and `it` - Italian.
+Now to run the game type `0verpg en` this will use the English version. Currently there are four languages `en`, `bg` - Bulgarian, `it` - Italian and `ja` - Japanese.
 
 ### Don't forget to use the `Spells key` after start to change with the +5 attacking power spell. Otherwise it will default only to the hero attacking power and `Basic Spell`.
 

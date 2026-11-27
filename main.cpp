@@ -173,7 +173,7 @@ int play(int argc, char *argv[]) {
   if (GetConsoleMode(hOut, &mode)) { SetConsoleMode(hOut, mode | 0x0004); } // ENABLE_VIRTUAL_TERMINAL_PROCESSING for the colours
 #endif /*_WIN32 */
   if (argc >= 2) { userLang = std::string(argv[1]); }
-  if (userLang != "en" && userLang != "bg" && userLang != "it") { std::cerr << "Error the given language " << userLang << " does not exists. Exiting..." << std::endl; return EXIT_FAILURE; }
+  if (userLang != "en" && userLang != "bg" && userLang != "it" && userLang != "ja") { std::cerr << "Error the given language " << userLang << " does not exists. Exiting..." << std::endl; return EXIT_FAILURE; }
   if (!cfg) { std::cerr << "Error: Could not open " << configHome << "\n"; return EXIT_FAILURE; }
   cfg >> config;
   cfg.close();
